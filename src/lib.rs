@@ -1,6 +1,7 @@
 use std::error::Error;
 use std::fs;
-use clap::{ App, Arg };
+use std::env;
+// use clap::{ App, Arg };
 
 pub struct Config {
     pub query: String,
@@ -9,7 +10,25 @@ pub struct Config {
 }
 
 impl Config {
-    pub fn new() -> Config {
+    pub fn new(mut args: env::Args) -> Result<Config, &'static str> {
+        args.next();
+
+        let query = match args.next() {
+            Some(arg) => arg,
+            None => return Err("Didnt get a query string.")
+        };
+
+        let filename = match args.next() {
+            Some(arg) => arg,
+            None => return Err("Didnt get a file name")
+        };
+
+        let case_sensitive = env::var("CASE_INSENSITIVE").is_err();
+        Ok(Config {
+            query,
+            filename,
+            case_sensitive
+        })
         /* Handle CLI configuration with starndard lib
          * return Result<Config, &str> 
          * 
@@ -24,43 +43,43 @@ impl Config {
             Ok(Config { query, filename, case_sensitive })
         **/
 
-        let matches = App::new("minigrep")
-            .version("v0.1.0")
-            .author("Camilo. <kmil0cv@gmail.com>")
-            .about("Simple implementation of grep in rust")
-            .arg(Arg::with_name("i")
-                    .short("i")
-                    .help("Sets case insensitive search.")
-            )
-            .arg(Arg::with_name("query")
-                    .short("q")
-                    .long("query")
-                    .required(true)
-                    .index(1)
-                    .help("String to search for.")
-            )
-            .arg(Arg::with_name("filename")
-                    .short("f")
-                    .long("filename")
-                    .required(true)
-                    .index(2)
-                    .help("Filename where you want to search on.")
-            )
-            .get_matches();
+        // let matches = App::new("minigrep")
+        //     .version("v0.1.0")
+        //     .author("Camilo. <kmil0cv@gmail.com>")
+        //     .about("Simple implementation of grep in rust")
+        //     .arg(Arg::with_name("i")
+        //             .short("i")
+        //             .help("Sets case insensitive search.")
+        //     )
+        //     .arg(Arg::with_name("query")
+        //             .short("q")
+        //             .long("query")
+        //             .required(true)
+        //             .index(1)
+        //             .help("String to search for.")
+        //     )
+        //     .arg(Arg::with_name("filename")
+        //             .short("f")
+        //             .long("filename")
+        //             .required(true)
+        //             .index(2)
+        //             .help("Filename where you want to search on.")
+        //     )
+        //     .get_matches();
 
-        let query = matches.value_of("query").unwrap();
-        let filename = matches.value_of("filename").unwrap();
+        // let query = matches.value_of("query").unwrap();
+        // let filename = matches.value_of("filename").unwrap();
 
-        let case_sensitive = match matches.occurrences_of("i") {
-            0 => true,
-            1 | _ => false
-        };
+        // let case_sensitive = match matches.occurrences_of("i") {
+        //     0 => true,
+        //     1 | _ => false
+        // };
 
-        Config { 
-            query: query.to_string(),
-            filename: filename.to_string(),
-            case_sensitive
-        }
+        // Config { 
+        //     query: query.to_string(),
+        //     filename: filename.to_string(),
+        //     case_sensitive
+        // }
     }
 }
 
@@ -81,27 +100,19 @@ pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
 }
 
 pub fn search<'a>(query: &str, contents: &'a str) -> Vec<&'a str> {
-    let mut results = Vec::new();
-
-    for line in contents.lines() {
-        if line.contains(query) {
-            results.push(line);
-        }
-    }
-    results
+    contents
+        .lines()
+        .filter(|line| line.contains(query))
+        .collect()
 }
 
 pub fn search_case_insensitive<'a>(query: &str, contents: &'a str) -> Vec<&'a str> {
     let query = query.to_lowercase();
-    let mut results = Vec::new();
 
-    for line in contents.lines() {
-        if line.to_lowercase().contains(&query) {
-            results.push(line);
-        }
-    }
-
-    results
+    contents
+        .lines()
+        .filter(|line| line.to_lowercase().contains(&query))
+        .collect()
 }
 
 
